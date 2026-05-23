@@ -41,7 +41,16 @@ async def list_movies(
     total_items = (await db.execute(count_query)).scalar()
 
     query = (
-        select(MovieModel).order_by(desc(MovieModel.id)).offset(offset).limit(per_page)
+        select(MovieModel)
+        .options(
+            selectinload(MovieModel.genres),
+            selectinload(MovieModel.actors),
+            selectinload(MovieModel.languages),
+            selectinload(MovieModel.country),
+        )
+        .order_by(desc(MovieModel.id))
+        .offset(offset)
+        .limit(per_page)
     )
     result = await db.execute(query)
     movies = result.scalars().all()
@@ -51,7 +60,7 @@ async def list_movies(
 
     total_pages = (total_items + per_page - 1) // per_page
 
-    base_url = "/theater/movies/"
+    base_url = "/api/v1/theater/movies/"
     prev_p = f"{base_url}?page={page-1}&per_page={per_page}" if page > 1 else None
     next_p = (
         f"{base_url}?page={page+1}&per_page={per_page}" if page < total_pages else None
@@ -151,7 +160,7 @@ async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
 
-@router.patch("/{movie_id}/")
+@router.patch("/{movie_id}/", response_model=dict)
 async def update_movie(
     movie_id: int, movie_in: MovieUpdate, db: AsyncSession = Depends(get_db)
 ):
@@ -169,6 +178,7 @@ async def update_movie(
     try:
         await db.commit()
     except Exception:
+        await db.rollback()
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
     return {"detail": "Movie updated successfully."}

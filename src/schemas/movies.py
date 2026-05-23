@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator, HttpUrl
 from datetime import date, datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 class GenreBase(BaseModel):
@@ -62,7 +62,7 @@ class MovieCreate(BaseModel):
     date: date
     score: float = Field(..., ge=0, le=100)
     overview: str
-    status: str
+    status: Literal["Released", "Post Production", "In Production"]
     budget: float = Field(..., ge=0)
     revenue: float = Field(..., ge=0)
     country: str
@@ -83,7 +83,7 @@ class MovieUpdate(BaseModel):
     date: Optional[date] = None
     score: Optional[float] = Field(None, ge=0, le=100)
     overview: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal["Released", "Post Production", "In Production"]] = None
     budget: Optional[float] = Field(None, ge=0)
     revenue: Optional[float] = Field(None, ge=0)
 
