@@ -1,50 +1,39 @@
-from pydantic import BaseModel, Field, field_validator, HttpUrl
-from datetime import date, datetime, timedelta
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from datetime import date, timedelta
 from typing import List, Optional, Literal
 
 
-class GenreBase(BaseModel):
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GenreBase(BaseSchema):
     id: int
     name: str
 
-    class Config:
-        from_attributes = True
 
-
-class ActorBase(BaseModel):
+class ActorBase(BaseSchema):
     id: int
     name: str
 
-    class Config:
-        from_attributes = True
 
-
-class LanguageBase(BaseModel):
+class LanguageBase(BaseSchema):
     id: int
     name: str
 
-    class Config:
-        from_attributes = True
 
-
-class CountryBase(BaseModel):
+class CountryBase(BaseSchema):
     id: int
     code: str
     name: Optional[str]
 
-    class Config:
-        from_attributes = True
 
-
-class MovieListItemSchema(BaseModel):
+class MovieListItemSchema(BaseSchema):
     id: int
     name: str
     date: date
     score: float
     overview: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 class MovieFull(MovieListItemSchema):
@@ -72,7 +61,7 @@ class MovieCreate(BaseModel):
 
     @field_validator("date")
     @classmethod
-    def date_not_too_far_future(cls, v):
+    def date_not_too_far_future(cls, v: date) -> date:
         if v > date.today() + timedelta(days=365):
             raise ValueError("Date cannot be more than one year in the future")
         return v
@@ -86,9 +75,13 @@ class MovieUpdate(BaseModel):
     status: Optional[Literal["Released", "Post Production", "In Production"]] = None
     budget: Optional[float] = Field(None, ge=0)
     revenue: Optional[float] = Field(None, ge=0)
+    country: Optional[str] = None
+    genres: Optional[List[str]] = None
+    actors: Optional[List[str]] = None
+    languages: Optional[List[str]] = None
 
 
-class MovieListResponseSchema(BaseModel):
+class MovieListResponseSchema(BaseSchema):
     movies: List[MovieListItemSchema]
     prev_page: Optional[str]
     next_page: Optional[str]

@@ -1,10 +1,9 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, desc
 from sqlalchemy.orm import selectinload
-
-import os
 
 if os.environ.get("ENVIRONMENT") == "testing":
     from src.database.session_sqlite import get_sqlite_db as get_db
@@ -22,7 +21,6 @@ from src.schemas.movies import (
     MovieCreate,
     MovieUpdate,
     MovieFull,
-    MovieListItemSchema,
     MovieListResponseSchema,
 )
 
@@ -60,7 +58,8 @@ async def list_movies(
 
     total_pages = (total_items + per_page - 1) // per_page
 
-    base_url = "/api/v1/theater/movies/"
+    base_url = "/theater/movies/"
+
     prev_p = f"{base_url}?page={page-1}&per_page={per_page}" if page > 1 else None
     next_p = (
         f"{base_url}?page={page+1}&per_page={per_page}" if page < total_pages else None
@@ -123,8 +122,19 @@ async def create_movie(movie_in: MovieCreate, db: AsyncSession = Depends(get_db)
 
     db.add(new_movie)
     await db.commit()
-    await db.refresh(new_movie)
-    return new_movie
+
+    query = (
+        select(MovieModel)
+        .where(MovieModel.id == new_movie.id)
+        .options(
+            selectinload(MovieModel.genres),
+            selectinload(MovieModel.actors),
+            selectinload(MovieModel.languages),
+            selectinload(MovieModel.country),
+        )
+    )
+    result = await db.execute(query)
+    return result.scalar_one()
 
 
 @router.get("/{movie_id}/", response_model=MovieFull)
